@@ -13,16 +13,19 @@ def get_dplane_chart(trace_hops, prefixes, sensor_asn=100):
 
     for hop in trace_hops:
         print(hop)
-        hop_ip = hop['hop_ip']
-        response = prefixes.query('network == @hop_ip')
+        if hop['responded']:
+            hop_ip = hop['hop_ip']
+            response = prefixes.query('network == @hop_ip')
 
-        if response.empty:
-            hop_to_asn_dict[hop_ip] = None
+            if response.empty:
+                hop_to_asn_dict[hop_ip] = None
 
-        else:
-            asn = int(response.asn.values[0])
-            hop_to_asn_dict[hop_ip] = asn
-            raw_as_path.append(asn)
+            else:
+                asn = int(response.asn.values[0])
+                hop_to_asn_dict[hop_ip] = asn
+                raw_as_path.append(asn)
+
+
 
         #print(response)
 

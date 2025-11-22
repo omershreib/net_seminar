@@ -27,18 +27,18 @@
           <tr>
             <td>{{ hop.hop_num }}</td>
               {% if hop.delays[0] %}
-            <td>{{ hop.delays[0] | round | int }}ms</td>
+            <td>{{ hop.delays[0] | round | int if hop.delays[0] else '*' }}ms</td>
               {% else %}
             <td> * </td>
               {% endif %}
 
               {% if hop.delays[1] %}
-            <td>{{ hop.delays[1] | round | int }}ms</td>
+            <td>{{ hop.delays[1] | round | int if hop.delays[0] else '*' }}ms</td>
               {% else %}
             <td> * </td>
               {% endif %}
               {% if hop.delays[2] %}
-            <td>{{ hop.delays[2] | round | int }}ms</td>
+            <td>{{ hop.delays[2] | round | int if hop.delays[0] else '*' }}ms</td>
               {% else %}
             <td> * </td>
               {% endif %}

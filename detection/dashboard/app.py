@@ -1,10 +1,12 @@
+from detection.system.sensor import sensor
+from detection.system.database.mongo_inserter import MongoInserter
 from detection.system.analysis.get_delay_chart import get_delay_chart
 from detection.system.analysis.get_cplane_chart import get_cplane_chart
 from detection.system.analysis.get_dplane_chart import get_dplane_chart
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from flask import request, Flask, render_template, url_for
-from markupsafe import escape
+from datetime import datetime, timedelta
 import os
 import pandas as pd
 import matplotlib
@@ -43,7 +45,26 @@ def save_fig_png(fig, prefix="chart"):
 def dashboard():
     collection = db["traceroutes"]
 
-    traceroute_id = request.args.get("uuid", default="6921970e5742bca490a77f4a")
+    # draw delay chart according to latest position
+    _project = {
+        'sensor_id': 2,
+        'destination_ip': '198.18.1.13'
+    }
+    _filter = {'sensor_id': 2, 'destination_ip': '198.18.1.13'}
+    _sort = list({
+                     'timestamp': -1
+                 }.items())
+    _limit = 1
+    result = collection.find_one(
+        filter=_filter,
+        projection=_project,
+        sort=_sort,
+        limit=_limit
+    )
+
+    latest_result = result['_id']
+
+    traceroute_id = request.args.get("uuid", default=ObjectId(f"{latest_result}"))
 
     print(traceroute_id)
 
@@ -52,6 +73,7 @@ def dashboard():
 
     if traceroute_id:
         curr_data_plane = collection.find_one({"sensor_id": 2, "_id": ObjectId(f"{traceroute_id}")})
+        print(f"destination_ip: {curr_data_plane}")
         destination_ip = curr_data_plane['destination_ip']
         trace_hops = curr_data_plane['hops']
         print(f"destination_ip: {destination_ip}")
@@ -75,6 +97,9 @@ def dashboard():
         dplane_chart_url = save_fig_png(dplane_chart_fig, prefix="dplane_chart")
 
         for hop in trace_hops:
+            if not hop['responded']:
+                continue
+
             hop_asn = dplane_hops_to_asn[hop['hop_ip']]
             if hop_asn:
                 hop['asn'] = hop_asn
@@ -91,4 +116,21 @@ def dashboard():
 
 
 if __name__ == '__main__':
+    # run monitor
+    monitored_ip = "198.18.1.13"
+    sensor_ip = "192.0.0.3"
+    start = datetime.now() + timedelta(seconds=5)  # start 5 seconds from now
+    end = start + timedelta(hours=3)  # run for 3 hours
+
+    mongo_inserter = MongoInserter()
+    mongo_inserter.connect()
+
+    if not mongo_inserter.is_connect:
+        exit(1)
+
+    mongo_inserter.start()
+
+    monitor = sensor.TraceMonitor(monitored_ip, sensor_ip, start, end)
+    monitor.start()
+
     app.run(host='192.0.0.3', debug=True)

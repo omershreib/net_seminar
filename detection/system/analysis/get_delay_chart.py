@@ -1,10 +1,14 @@
 from detection.system.analysis.get_data_plane_delay import get_data_plane_delay
 import io
 import base64
+from _datetime import datetime
+import matplotlib.dates as mdates
+import pandas as pd
 import matplotlib
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
 from matplotlib.figure import Figure
 
 #plt.style.use('ggplot')
@@ -22,7 +26,7 @@ def set_delay_scatter():
 
     return fig, ax
 
-def get_delay_chart(collection, limit = 50):
+def get_delay_chart(collection, limit = 25):
     delay_data = []
 
     mongo_filter = {
@@ -46,7 +50,12 @@ def get_delay_chart(collection, limit = 50):
 
     fig, ax = set_delay_scatter()
 
-    times = [t for t, _ in delay_data]
+    # for t, _ in delay_data:
+    #     print(t)
+
+    times = [pd.to_datetime(t) for t, _ in delay_data]
+    #times = [datetime.strptime(t, '%H:%M:%S') for t, _ in delay_data]
+    #times = [t for t, _ in delay_data]
     delays = [d for _, d in delay_data]
 
     # label, value
@@ -55,11 +64,15 @@ def get_delay_chart(collection, limit = 50):
     # matplotlib
     plt.scatter(times, delays, color=['blue' if delay < threshold else 'red' for delay in delays])
     plt.plot(times, delays, linestyle='--', color='red', label='Dashed Line')
-    plt.xticks(rotation=45)
-    plt.title("Delay Timeline")
+    #plt.xticks(rotation=45)
+    plt.title(f"Delay Timeline (Last {limit} Probes)")
 
-    # Save plot to PNG in memory
-    output = io.BytesIO()
+    locator = mdates.MinuteLocator(interval=1)
+    formatter = mdates.DateFormatter('%H:%M:%S')
+    ax.xaxis.set_major_locator(locator)
+    ax.xaxis.set_major_formatter(formatter)
+    plt.xticks(rotation=45)
+
     plt.tight_layout()
 
 
