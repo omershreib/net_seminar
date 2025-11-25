@@ -1,12 +1,12 @@
 from config import CONFIG
-from detection.dashboard.dashboard_tools import compute_state, updater_loop
+from detection.dashboard.tools import compute_state, updater_loop
 from detection.system.database.get_latest_data_plane_id import get_latest_data_plane_id
 from detection.system.sensor import trace_monitor
 from external.bgp_table_to_ftp import bgp_worker
 from detection.system.database.mongo_inserter import MongoInserter, make_mongo_inserter_parameters
 from pymongo import MongoClient
 from bson.objectid import ObjectId
-from flask import request, Flask, render_template, Response
+from flask import request, Flask, render_template, Response, redirect, url_for
 from turbo_flask import Turbo
 from threading import Lock
 from markupsafe import escape
@@ -34,7 +34,7 @@ CONFIG['static_dir'] = STATIC_DIR
 os.makedirs(STATIC_DIR, exist_ok=True)
 
 # prefix2as configs
-prefixes = pd.read_csv(CONFIG['utilites']['prefix2as'])
+prefixes = pd.read_csv(CONFIG['utilities']['prefix2as'])
 
 
 def start_updater_thread():
@@ -69,6 +69,10 @@ def live_dashboard_data():
     return Response(dumps(payload), mimetype="application/json")
 
 
+@app.route("/")
+def root():
+    return redirect(url_for('dashboard'))
+
 @app.route("/live_dashboard")
 def live_dashboard():
     collection = db["traceroutes"]
@@ -93,7 +97,7 @@ def live_dashboard():
     )
 
 
-@app.route("/", methods=['GET', 'POST'])
+@app.route("/dashboard", methods=['GET', 'POST'])
 def dashboard():
     collection = db["traceroutes"]
     latest_result = get_latest_data_plane_id(collection)

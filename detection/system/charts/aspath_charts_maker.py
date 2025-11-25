@@ -1,5 +1,5 @@
 from detection.system.analysis.asn_path_graphic_analysis import asn_path_graphic_analysis2
-from detection.detection_tools.as_relationships import get_as_relationships
+from detection.utilities.as_relationships import get_as_relationships
 import networkx as nx
 import matplotlib
 

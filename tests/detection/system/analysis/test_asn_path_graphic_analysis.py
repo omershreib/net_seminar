@@ -1,5 +1,5 @@
 from detection.system.analysis.asn_path_graphic_analysis import asn_path_graphic_analysis2
-from detection.detection_tools.as_relationships import get_as_relationships
+from detection.utilities.as_relationships import get_as_relationships
 from detection.system.charts.aspath_charts_maker import make_edges
 import unittest
 import networkx as nx
@@ -13,10 +13,6 @@ class TestAsnPathGraphicAnalysis(unittest.TestCase):
         # input G, as_relationships
         nodes = [100, 200, 300, 400]
         edges = make_edges(nodes)
-
-        # utilities
-
-        #print(edges)
 
         G = nx.DiGraph()
         G.add_nodes_from(nodes)

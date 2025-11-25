@@ -21,7 +21,7 @@ def pull_bgp_table(filename):
     ftp.login(user=ftp_user, passwd=ftp_pass)
 
     print("pull latest BGP table snapshot...")
-    filepath = CONFIG['utilites']['bgp_table']
+    filepath = CONFIG['utilities']['bgp_table']
 
     with open(filepath, "wb") as file:
         ftp.retrbinary(f"RETR {filename}", file.write)

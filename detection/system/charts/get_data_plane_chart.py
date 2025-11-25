@@ -2,7 +2,7 @@ from pymongo import MongoClient, errors
 from bson.objectid import ObjectId
 from detection.system.charts.aspath_charts_maker import make_edges, get_aspath_chart_fig, AS_RELATIONSHIPS
 from pprint import pprint
-from detection.detection_tools import prefix2as
+from detection.utilities import prefix2as
 import pandas as pd
 
 
@@ -32,7 +32,7 @@ def get_data_plane_chart(trace_hops, prefixes, sensor_asn=100):
     return fig, hop_to_asn_dict
 
 def cplane_test():
-    prefix2as_csv = r"D:\Documents\open university\netSeminar\source\detection\detection_tools\prefix2as.csv"
+    prefix2as_csv = r"D:\Documents\open university\netSeminar\source\detection\utilities\prefix2as.csv"
     prefixes = pd.read_csv(prefix2as_csv)
 
     trace_hops = [{'hop_num': 1, 'hop_ip': '192.0.0.254', 'delays': [3.0, 10.0, 10.0], 'responded': True},
@@ -58,7 +58,7 @@ if __name__ == '__main__':
     collection = db["traceroutes"]
     traceroute_id = ObjectId("69219177988e64c0570e10e8")
 
-    prefix2as_csv = r"D:\Documents\open university\netSeminar\source\detection\detection_tools\prefix2as.csv"
+    prefix2as_csv = r"D:\Documents\open university\netSeminar\source\detection\utilities\prefix2as.csv"
     prefixes = pd.read_csv(prefix2as_csv)
 
     print(prefixes)

@@ -1,5 +1,5 @@
 from detection.dashboard.render_fragments import render_fragments
-from detection.dashboard.dashboard_tools import compute_state
+from detection.dashboard.tools import compute_state
 import time
 
 def updater_loop(app, turbo):

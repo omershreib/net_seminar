@@ -1,4 +1,4 @@
-from detection.dashboard.dashboard_tools.save_fig_png import save_fig_png
+from detection.dashboard.tools.save_fig_png import save_fig_png
 from detection.system.sensor.bgp_table_from_ftp import pull_bgp_table
 from detection.system.charts.get_control_plane_chart import get_control_plane_chart
 from detection.system.charts.get_data_plane_chart import get_data_plane_chart

@@ -1,5 +1,5 @@
 from detection.system.charts.aspath_charts_maker import assign_level, make_edges, get_aspath_chart_fig
-from detection.detection_tools.as_relationships import get_as_relationships
+from detection.utilities.as_relationships import get_as_relationships
 import unittest
 import numpy as np
 import matplotlib

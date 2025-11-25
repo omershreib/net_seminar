@@ -10,7 +10,7 @@ def get_control_plane_chart(sensor_asn=100):
 
     raw_as_path = [sensor_asn]
 
-    bgp_file = CONFIG['utilites']['bgp_table']
+    bgp_file = CONFIG['utilities']['bgp_table']
     bgp_routes = parse_bgp.bgp_table_to_dict(bgp_file)
 
     df = pd.DataFrame(bgp_routes)
@@ -42,7 +42,7 @@ def get_control_plane_chart(sensor_asn=100):
 #
 #     pull_ftp("latest_bgp_table.txt")
 #
-#     #prefix2as_csv = r"D:\Documents\open university\netSeminar\source\detection\utilites\prefix2as.csv"
+#     #prefix2as_csv = r"D:\Documents\open university\netSeminar\source\detection\utilities\prefix2as.csv"
 #     #my_prefixes = pd.read_csv(prefix2as_csv)
 #
 #     fig = get_control_plane_chart()

@@ -98,7 +98,7 @@ def traceroute_host(host: str, timeout: int = 1000):
 
 
 def test():
-    with open('../../utilites/test_traceroute.csv', 'r') as f:
+    with open('../../utilities/test_traceroute.csv', 'r') as f:
         test_raw_output = f.read()
 
     #pprint(get_traceroute_list(test_raw_output))
