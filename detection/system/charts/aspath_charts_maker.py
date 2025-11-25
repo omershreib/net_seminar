@@ -54,6 +54,7 @@ def assign_level(nodes, as_relationships):
 
 def get_aspath_chart_fig(title, nodes, edges, as_relationships):
     # build graph
+    #print(f"nodes: {nodes}")
     G = nx.DiGraph()
     G.add_nodes_from(nodes)
     G.add_edges_from(edges)
@@ -89,13 +90,13 @@ def get_aspath_chart_fig(title, nodes, edges, as_relationships):
         nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color='black')
 
         plt.axis('off')
-        plt.tight_layout()
+        #plt.tight_layout()
         plt.title(title)
 
         return fig
 
     except Exception:
-        return None
+        return fig
 
 
 if __name__ == '__main__':
@@ -112,7 +113,7 @@ if __name__ == '__main__':
 
     # pprint(as_relationships)
 
-    fig = get_aspath_chart_fig(nodes, edges, as_relationships)
+    fig = get_aspath_chart_fig("No Data Plane to Present",nodes, edges, as_relationships)
     filename = f"test_valley_free_chart.png"
     # filepath = os.path.join(STATIC_DIR, filename)
     fig.tight_layout()

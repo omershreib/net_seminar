@@ -74,9 +74,9 @@ def get_delay_chart(collection, limit=25):
     # for t, _ in delay_data:
     #     print(t)
 
-    times = [pd.to_datetime(t) for t, _ in delay_data]
+    #times = [pd.to_datetime(t) for t, _ in delay_data]
     #times = [datetime.strptime(t, '%H:%M:%S') for t, _ in delay_data]
-    #times = [t for t, _ in delay_data]
+    times = [t for t, _ in delay_data]
     delays = [d for _, d in delay_data]
 
     # # label, value

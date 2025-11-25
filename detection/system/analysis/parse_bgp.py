@@ -1,7 +1,8 @@
 from pyparsing import Word, Combine, Optional, oneOf, nums, Group, OneOrMore, Literal, ParseException
 from ipaddress import IPv4Address, IPv4Network
-#from parse_ip_route import ip_routes_to_net_masks_dict
+# from parse_ip_route import ip_routes_to_net_masks_dict
 import pandas as pd
+
 
 def load_bgp_table_file(filename):
     flag = False
@@ -19,9 +20,6 @@ def load_bgp_table_file(filename):
                 flag = True
 
     return file_lines
-
-
-
 
 
 # Define grammar components
@@ -100,7 +98,6 @@ def normalize_network(net_str):
     return IPv4Network(net_str, strict=False)
 
 
-
 def bgp_table_to_dict(bgp_file):
     table = load_bgp_table_file(bgp_file)
     bgp_routes = []
@@ -163,10 +160,9 @@ if __name__ == '__main__':
 
     df = pd.DataFrame(bgp_routes)
 
-    #df["network_obj"] = df["network"].apply(normalize_network, args=(masks,))
+    # df["network_obj"] = df["network"].apply(normalize_network, args=(masks,))
     df["network_obj"] = df["network"].apply(normalize_network)
     print(df)
-
 
     # === Query by IP address ===
     query_ip = IPv4Address("198.18.1.13")

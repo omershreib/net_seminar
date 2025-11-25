@@ -9,43 +9,70 @@ import time
 trace_queue = Queue()
 
 
+def make_mongo_inserter_parameters(items: dict):
+    client_url: str = items['client_url']
+    database: str = items['database']
+    collection: str = items['collection']
+    frequency: int = items['trace_queue_check_frequency']
+
+    mongo_client = MongoClient(client_url)
+    mongo_db = mongo_client[database]
+    mongo_collection = mongo_db[collection]
+
+    return {'collection': mongo_collection, 'frequency': frequency}
+
+
 class MongoInserter(threading.Thread):
-    def __init__(self):
+    """mongoDB inserter thread class"""
+    #def __init__(self, collection: str, client: MongoClient, database: MongoClient, frequency: int):
+    def __init__(self, collection: MongoClient, frequency: int):
+        """
+
+        :param collection (str): mongoDB collection name
+        :param client (MongoClient): client object for mongoDB instance
+        :param database (str): mongoDB database name
+        :param trace_queue_check_frequency:
+
+        all these parameters can be configured in the config file located in the root of this project
+        """
         super().__init__()
-        self.collection = "traceroutes"
-        self._client = None
-        self._db = None
+        self.collection = collection
+        #self._client = client
+        #self._db = database
         self.is_connect = False
+        self.frequency = frequency
+        #self.trace_queue_check_frequency = trace_queue_check_frequency
         self._stop_event = threading.Event()
 
-    def connect(self):
-        try:
-            print("connect to database...")
-            self._client = MongoClient("mongodb://localhost:27017/")
-            self._db = self._client["network_monitoring"]
-
-            # Check MongoDB connection
-            self._client.admin.command("ping")
-
-            print("connection succeeded")
-            self.is_connect = True
-
-        except errors.ServerSelectionTimeoutError:
-            print("connection failed (does the server is running?)")
-
-        except Exception as e:
-            print(f"unexpected error: {e}")
+    # def connect(self):
+    #     try:
+    #         # print("connect to database...")
+    #         # self._client = MongoClient("mongodb://localhost:27017/")
+    #         # self._db = self._client["network_monitoring"]
+    #
+    #         # Check MongoDB connection
+    #         self._client.admin.command("ping")
+    #
+    #         print("connection succeeded")
+    #         self.is_connect = True
+    #
+    #     except errors.ServerSelectionTimeoutError:
+    #         print("connection failed (does the server is running?)")
+    #
+    #     except Exception as e:
+    #         print(f"unexpected error: {e}")
 
     def run(self):
-        if not self.is_connect:
-            print("cannot run thread before connection establishment with database")
-            return
+        # if not self.is_connect:
+        #     print("cannot run thread before connection establishment with database")
+        #     return
 
-        collection = self._db[self.collection]
+        #collection = self._db[self.collection]
+        inserter_sleep = self.frequency
         while True:
             if trace_queue.empty():
-                print("nothing yet...")
-                time.sleep(1)
+                print("traceroute queue is empty...")
+                time.sleep(inserter_sleep)
                 continue
 
             items = trace_queue.get()
@@ -55,55 +82,25 @@ class MongoInserter(threading.Thread):
             to_json_doc = jsonify_trace_list(sensor_ip, target_ip, trace_list)
             pprint(to_json_doc)
 
-            result = collection.insert_one(to_json_doc)
-            print("Inserted document ID:", result.inserted_id)
+            result = self.collection.insert_one(to_json_doc)
+            print("inserted document ID:", result.inserted_id)
 
-            time.sleep(1)
+            time.sleep(inserter_sleep)
 
     def stop(self):
         self._stop_event.set()
 
 
 if __name__ == '__main__':
+    from config import CONFIG
+
+    mongo_inserter_parameters = CONFIG['system']['mongoDB']
     client = MongoClient("mongodb://localhost:27017/")
 
     # Select database
     db = client["network_monitoring"]
 
-    # collection = db["customers"]
-    # doc = {"_id": 1,"name": "gns3_home"}
-    # result = collection.insert_one(doc)
-    # print("Inserted document ID:", result.inserted_id)
-
-    # items = db.customers.find_one({"name": "gns3_home"})
-    # for item in items:
-    #     print(item.get("_id"))
-
-
-    # db.create_collection("destinations")
-    # db.create_collection("customers")
-
-    # collection = db["customers"]
-    # doc = {"name": "gns3_home"}
-
-    # result = collection.insert_one(doc)
-    # print("Inserted document ID:", result.inserted_id)
-    #
-    #customer_id = db.get_collection({"name": "gns3_home", ""})
-    #
-    # print(customer_id)
-    #
-    # collection = db["destinations"]
-    # doc = {"ip": "198.18.1.254", "customer_id": db.customers.find_one({"name": "gns3_home"}).get("_id")}
-    #
-    # result = collection.insert_one(doc)
-    # print("Inserted document ID:", result.inserted_id)
-    #
-    # collection = db["customers"]
-    # filter_query = {"name": "gns3_home"}
-    # new_values = {"$set": {"nprobes": db.customers.find_one({"name": "gns3_home"}).get("nprobes") + 1}}
-    # result_one = collection.update_one(filter_query, new_values)
-
+    MongoInserter(**mongo_inserter_parameters)
 
 
 

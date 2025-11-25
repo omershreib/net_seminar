@@ -6,7 +6,7 @@ from detection.detection_tools import prefix2as
 import pandas as pd
 
 
-def get_dplane_chart(trace_hops, prefixes, sensor_asn=100):
+def get_data_plane_chart(trace_hops, prefixes, sensor_asn=100):
 
     hop_to_asn_dict = {}
     raw_as_path = [sensor_asn]
@@ -42,25 +42,35 @@ def cplane_test():
                  {'hop_num': 5, 'hop_ip': '10.0.0.18', 'delays': [60.0, 61.0, 72.0], 'responded': True},
                  {'hop_num': 6, 'hop_ip': '198.18.1.13', 'delays': [74.0, 72.0, 72.0], 'responded': True}]
 
-    fig, hop_to_asn_dict = get_dplane_chart(trace_hops, prefixes)
+    fig, hop_to_asn_dict = get_data_plane_chart(trace_hops, prefixes)
 
 
 if __name__ == '__main__':
-    cplane_test()
-    # # mongodb config
-    # client = MongoClient("mongodb://localhost:27017/")
-    # db = client["network_monitoring"]
-    # collection = db["traceroutes"]
-    # traceroute_id = ObjectId("69219177988e64c0570e10e8")
-    #
-    # prefix2as_csv = r"D:\Documents\open university\netSeminar\source\detection\detection_tools\prefix2as.csv"
-    # prefixes = pd.read_csv(prefix2as_csv)
-    #
-    # print(prefixes)
-    #
-    # data_plane = collection.find_one({"sensor_id": 2, "_id": ObjectId(f"{traceroute_id}")})
-    # destination_ip = data_plane['destination_ip']
-    # trace_hops = data_plane['hops']
-    # print(f"destination_ip: {destination_ip}")
-    # print()
-    # get_dplane_chart(trace_hops, prefixes)
+    import matplotlib
+
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    #cplane_test()
+    # mongodb config
+    client = MongoClient("mongodb://localhost:27017/")
+    db = client["network_monitoring"]
+    collection = db["traceroutes"]
+    traceroute_id = ObjectId("69219177988e64c0570e10e8")
+
+    prefix2as_csv = r"D:\Documents\open university\netSeminar\source\detection\detection_tools\prefix2as.csv"
+    prefixes = pd.read_csv(prefix2as_csv)
+
+    print(prefixes)
+
+    data_plane = collection.find_one({"sensor_id": 2, "_id": ObjectId(f"6922e05ecb0c1b4bc7bb9dfe")})
+    destination_ip = data_plane['destination_ip']
+    trace_hops = data_plane['hops']
+    print(f"destination_ip: {destination_ip}")
+    print()
+
+    fig, hop_to_asn_dict = get_data_plane_chart(trace_hops, prefixes)
+    plt.title = "No Data Plane to Present..."
+    fig.tight_layout()
+    plt.savefig('default_data_plane_chart.png')
+
