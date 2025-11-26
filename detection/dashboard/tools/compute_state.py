@@ -1,3 +1,4 @@
+from config import CONFIG
 from detection.dashboard.tools.save_fig_png import save_fig_png
 from detection.system.sensor.bgp_table_from_ftp import pull_bgp_table
 from detection.system.charts.get_control_plane_chart import get_control_plane_chart
@@ -5,6 +6,9 @@ from detection.system.charts.get_data_plane_chart import get_data_plane_chart
 from detection.system.charts.get_delay_chart import get_delay_chart
 from bson.objectid import ObjectId
 import time
+
+DELAY_POINT_LIMIT = CONFIG['dashboard']['delay_points_limit']
+DELAY_POINT_THRESHOLD = CONFIG['dashboard']['delay_points_threshold']
 
 
 def compute_state(collection, prefixes, traceroute_id: str):
@@ -27,7 +31,7 @@ def compute_state(collection, prefixes, traceroute_id: str):
 
     # Delay chart
     print("update delay chart")
-    delay_chart_fig = get_delay_chart(collection)
+    delay_chart_fig = get_delay_chart(collection, limit=DELAY_POINT_LIMIT, threshold=DELAY_POINT_THRESHOLD)
     delay_chart_url = save_fig_png(delay_chart_fig, prefix="delay_chart")
 
     # update BGP table (provided by LocalISP)

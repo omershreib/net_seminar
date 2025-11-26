@@ -27,7 +27,6 @@ def jsonify_trace_list(sensor_ip, destination_ip, hops):
     json_doc = {
         "timestamp": datetime.now(),  # required for time series
         "sensor_id": sensors_dict[sensor_ip],
-        # "sensor_ip": sensor_ip,
         "destination_ip": destination_ip,
         "hops": json_hops
     }

@@ -8,7 +8,7 @@ class TestParseBGP(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.test_file = r'test_files/test_bgp_table.txt'
-        self.expected_file = 'test_expected_loaded_bgp_file.txt'
+        self.expected_file = 'test_files/test_expected_loaded_bgp_file.txt'
 
     def load_expected_bgp_lines(self):
         bgp_lines = []

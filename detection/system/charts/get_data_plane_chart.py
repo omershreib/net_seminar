@@ -1,46 +1,56 @@
-from pymongo import MongoClient, errors
+from pymongo import MongoClient
 from bson.objectid import ObjectId
 from detection.system.charts.aspath_charts_maker import make_edges, get_aspath_chart_fig, AS_RELATIONSHIPS
-from pprint import pprint
-from detection.utilities import prefix2as
+from detection.utilities.prefix2as import prefix2as
 import pandas as pd
 
 
 def get_data_plane_chart(trace_hops, prefixes, sensor_asn=100):
-
     hop_to_asn_dict = {}
     raw_as_path = [sensor_asn]
+    fixed_as_path = []
+    prev_asn = None
 
     for hop in trace_hops:
-        print(hop)
         if hop['responded']:
             hop_ip = hop['hop_ip']
-            response = prefixes.query('network == @hop_ip')
 
-            if response.empty:
+            # response = prefixes.query('network == @hop_ip')
+            # print(hop_ip)
+            # response = prefixes[prefixes["network_obj"].apply(lambda net: hop_ip in net)]
+            # print(response)
+
+            asn = prefix2as.ip_to_asn(hop_ip, prefixes)
+
+            if not asn:
                 hop_to_asn_dict[hop_ip] = None
 
             else:
-                asn = int(response.asn.values[0])
                 hop_to_asn_dict[hop_ip] = asn
                 raw_as_path.append(asn)
 
+    # clean raw AS path from duplicate ASNs
+    for asn in raw_as_path:
+        if asn != prev_asn:
+            prev_asn = asn
+            fixed_as_path.append(asn)
 
-    egdes = make_edges(raw_as_path)
+    edges = make_edges(fixed_as_path)
 
-    fig = get_aspath_chart_fig("Data Plane AS-Path",raw_as_path, egdes, AS_RELATIONSHIPS)
+    fig = get_aspath_chart_fig("Data Plane AS-Path", fixed_as_path, edges, AS_RELATIONSHIPS)
     return fig, hop_to_asn_dict
+
 
 def cplane_test():
     prefix2as_csv = r"D:\Documents\open university\netSeminar\source\detection\utilities\prefix2as.csv"
     prefixes = pd.read_csv(prefix2as_csv)
 
     trace_hops = [{'hop_num': 1, 'hop_ip': '192.0.0.254', 'delays': [3.0, 10.0, 10.0], 'responded': True},
-                 {'hop_num': 2, 'hop_ip': '23.9.1.1', 'delays': [17.0, 20.0, 20.0], 'responded': True},
-                 {'hop_num': 3, 'hop_ip': '10.0.0.1', 'delays': [42.0, 41.0, 41.0], 'responded': True},
-                 {'hop_num': 4, 'hop_ip': '10.0.0.9', 'delays': [49.0, 42.0, 51.0], 'responded': True},
-                 {'hop_num': 5, 'hop_ip': '10.0.0.18', 'delays': [60.0, 61.0, 72.0], 'responded': True},
-                 {'hop_num': 6, 'hop_ip': '198.18.1.13', 'delays': [74.0, 72.0, 72.0], 'responded': True}]
+                  {'hop_num': 2, 'hop_ip': '23.9.1.1', 'delays': [17.0, 20.0, 20.0], 'responded': True},
+                  {'hop_num': 3, 'hop_ip': '10.0.0.1', 'delays': [42.0, 41.0, 41.0], 'responded': True},
+                  {'hop_num': 4, 'hop_ip': '10.0.0.9', 'delays': [49.0, 42.0, 51.0], 'responded': True},
+                  {'hop_num': 5, 'hop_ip': '10.0.0.18', 'delays': [60.0, 61.0, 72.0], 'responded': True},
+                  {'hop_num': 6, 'hop_ip': '198.18.1.13', 'delays': [74.0, 72.0, 72.0], 'responded': True}]
 
     fig, hop_to_asn_dict = get_data_plane_chart(trace_hops, prefixes)
 
@@ -51,7 +61,7 @@ if __name__ == '__main__':
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
 
-    #cplane_test()
+    # cplane_test()
     # mongodb config
     client = MongoClient("mongodb://localhost:27017/")
     db = client["network_monitoring"]
@@ -73,4 +83,3 @@ if __name__ == '__main__':
     plt.title = "No Data Plane to Present..."
     fig.tight_layout()
     plt.savefig('default_data_plane_chart.png')
-

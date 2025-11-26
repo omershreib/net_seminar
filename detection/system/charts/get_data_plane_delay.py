@@ -1,5 +1,4 @@
 def get_data_plane_delay(data_plane):
-    # todo: handle case of empty hops array
     for hop in data_plane['hops'][::-1]:
         if hop['responded']:
             return min([delay for delay in hop['delays'] if delay is not None])

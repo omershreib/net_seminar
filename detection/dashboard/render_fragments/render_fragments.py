@@ -1,5 +1,6 @@
 from flask import render_template_string
 
+
 def render_data_plane_fragment(state):
     return render_template_string(
         """

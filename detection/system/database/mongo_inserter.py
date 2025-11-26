@@ -23,50 +23,21 @@ def make_mongo_inserter_parameters(items: dict):
 
 class MongoInserter(threading.Thread):
     """mongoDB inserter thread class"""
-    #def __init__(self, collection: str, client: MongoClient, database: MongoClient, frequency: int):
     def __init__(self, collection: MongoClient, frequency: int):
         """
 
-        :param collection (str): mongoDB collection name
+        :param collection (MongoClient): mongoDB MongoClient object (should equal to db['traceroutes'])
         :param client (MongoClient): client object for mongoDB instance
-        :param database (str): mongoDB database name
-        :param trace_queue_check_frequency:
+        :param frequency (int): the time gap (in seconds) between traced probes
 
         all these parameters can be configured in the config file located in the root of this project
         """
         super().__init__()
         self.collection = collection
-        #self._client = client
-        #self._db = database
-        self.is_connect = False
         self.frequency = frequency
-        #self.trace_queue_check_frequency = trace_queue_check_frequency
         self._stop_event = threading.Event()
 
-    # def connect(self):
-    #     try:
-    #         # print("connect to database...")
-    #         # self._client = MongoClient("mongodb://localhost:27017/")
-    #         # self._db = self._client["network_monitoring"]
-    #
-    #         # Check MongoDB connection
-    #         self._client.admin.command("ping")
-    #
-    #         print("connection succeeded")
-    #         self.is_connect = True
-    #
-    #     except errors.ServerSelectionTimeoutError:
-    #         print("connection failed (does the server is running?)")
-    #
-    #     except Exception as e:
-    #         print(f"unexpected error: {e}")
-
     def run(self):
-        # if not self.is_connect:
-        #     print("cannot run thread before connection establishment with database")
-        #     return
-
-        #collection = self._db[self.collection]
         inserter_sleep = self.frequency
         while True:
             if trace_queue.empty():
@@ -79,11 +50,9 @@ class MongoInserter(threading.Thread):
             trace_list = get_traceroute_list(data_plane)
 
             to_json_doc = jsonify_trace_list(sensor_ip, target_ip, trace_list)
-            ##pprint(to_json_doc)
-
             result = self.collection.insert_one(to_json_doc)
-            print("inserted document ID:", result.inserted_id)
 
+            print("inserted document ID:", result.inserted_id)
             time.sleep(inserter_sleep)
 
     def stop(self):
@@ -100,6 +69,3 @@ if __name__ == '__main__':
     db = client["network_monitoring"]
 
     MongoInserter(**mongo_inserter_parameters)
-
-
-
