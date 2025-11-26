@@ -2,12 +2,10 @@ from config import CONFIG
 from detection.system.charts.aspath_charts_maker import make_edges, get_aspath_chart_fig, AS_RELATIONSHIPS
 from detection.system.analysis import parse_bgp
 from ipaddress import IPv4Address
-from pprint import pprint
 import pandas as pd
 
 
 def get_control_plane_chart(sensor_asn=100):
-
     raw_as_path = [sensor_asn]
 
     bgp_file = CONFIG['utilities']['bgp_table']
@@ -16,17 +14,17 @@ def get_control_plane_chart(sensor_asn=100):
     df = pd.DataFrame(bgp_routes)
     df["network_obj"] = df["network"].apply(parse_bgp.normalize_network)
 
-    query_ip = IPv4Address("198.18.1.13")
+    monitored_ip = CONFIG['system']['monitor_setup']['ip_address']
+    query_ip = IPv4Address(monitored_ip)
     matches_ip = df[df["network_obj"].apply(lambda net: query_ip in net)]
 
     if not matches_ip.empty:
         raw_as_path.extend([int(asn) for asn in matches_ip['path'].to_list()[0]])
 
-    egdes = make_edges(raw_as_path)
+    edges = make_edges(raw_as_path)
 
-    fig = get_aspath_chart_fig("Control Plane AS-Path",raw_as_path, egdes, AS_RELATIONSHIPS)
+    fig = get_aspath_chart_fig("Control Plane AS-Path", raw_as_path, edges, AS_RELATIONSHIPS)
     return fig, raw_as_path
-
 
 # if __name__ == '__main__':
 #     import pandas as pd

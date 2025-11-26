@@ -37,18 +37,21 @@
 
 
 {% block body %}
+<div class="flex-container">
+  <div class="position-fixed bottom-0 end-0" style="right: 55px; bottom: 5px; z-index:1050;">
+    <button onclick="window.location.reload();" type="submit" class="btn btn-outline-light">refresh</button>
+  </div>
+</div>
 
 <div class="container-fluid bg-dark text-center" style="max-width: 95%;">
   <div class="row align-items-center" style="background: #343a40">
     <div class="col">
-      <div class="d-grid gap-2 d-md-flex justify-content-md-end" style="margin-bottom: 2%;">
-        <button onclick="window.location.reload();" type="submit" class="btn btn-outline-light">refresh</button>
-      </div>
+
       {% include "traceroute.html" %}</div>
     <div class="col">{% include "delay_chart.html" %}</div>
   </div>
 
-    <h2 style="color: white; margin-top: 2%;">Control Plane vs. Data Plane AS Path</h2>
+    <h2 style="color: white;">Control Plane vs. Data Plane AS Path</h2>
 
 
   <div class="row align-items-center" style="background: #343a40;">
