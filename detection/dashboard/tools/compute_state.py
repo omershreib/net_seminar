@@ -12,8 +12,25 @@ DELAY_POINT_THRESHOLD = CONFIG['dashboard']['delay_points_threshold']
 
 
 def compute_state(collection, prefixes, traceroute_id):
-    """Fetch latest state and generate charts for a given traceroute id."""
-    print(f"search for: {traceroute_id}")
+    """
+
+    fetch the latest data to the dashboard. this includes latest raw traceroute pulled from mongoDB and download
+    and parse latest BGP snapshot from localISP routing table. then generating all the charts (delay chart,
+    control-plane chart and data-plane chart). all these goods return by this function.
+
+    :param collection: mongoDB MongoClient object (should equal to db['traceroutes'])
+    :param prefixes: matrix of GNS3 lab project prefixes
+    :param traceroute_id: traceroute Object id
+    :return: a dictionary with the following keys:
+
+        "data_plane": raw traceroute data
+        "delay_chart_url": URL to delay chart
+        "control_plane_chart_url": URL to control plane chart
+        "data_plane_chart_url": URL to data plane chart
+        "prev_id": previous traceroute Object id (if not exist return current traceroute id)
+        "next_id": next traceroute Object id (if not exist return current traceroute id)
+        "ts": time parameter for image caching
+    """
     curr_data_plane = collection.find_one({"sensor_id": 2, "_id": ObjectId(f"{traceroute_id}")})
     if not curr_data_plane:
         return None
@@ -30,8 +47,7 @@ def compute_state(collection, prefixes, traceroute_id):
         sort=[("_id", 1)]
     )
 
-    # Delay chart
-    print("update delay chart")
+    # delay chart
     delay_chart_fig = get_delay_chart(collection, limit=DELAY_POINT_LIMIT, threshold=DELAY_POINT_THRESHOLD)
 
     try:

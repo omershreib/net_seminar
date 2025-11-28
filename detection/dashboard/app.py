@@ -1,24 +1,25 @@
 from config import CONFIG
 from detection.utilities.prefix2as import prefix2as
-from detection.dashboard.render_fragments import render_fragments
 from detection.dashboard.tools.compute_state import compute_state
 from detection.system.database.get_latest_data_plane_id import get_latest_data_plane_id
 from detection.system.sensor import trace_monitor
 from external.bgp_table_to_ftp import bgp_worker
 from detection.system.database.mongo_inserter import MongoInserter, make_mongo_inserter_parameters
 from pymongo import MongoClient
-from bson.objectid import ObjectId
-from flask import request, Flask, render_template, Response, redirect, url_for
-from turbo_flask import Turbo
+from flask import request, Flask, render_template, redirect, url_for
 from markupsafe import escape
-from bson.json_util import dumps
-from pprint import pprint
 import threading
 import os
 
 # mongodb config
-client = MongoClient("mongodb://localhost:27017/")
-db = client["network_monitoring"]
+MONGO_CLIENT_URL = CONFIG['system']['mongoDB']['client_url']
+MONGO_DATABASE = CONFIG['system']['mongoDB']['database']
+MONGO_COLLECTION = CONFIG['system']['mongoDB']['collection']
+
+# mongoDB connection setup
+client = MongoClient(MONGO_CLIENT_URL)
+db = client[MONGO_DATABASE]
+collection = db[MONGO_COLLECTION]
 
 # flask config
 app = Flask(__name__)
@@ -28,8 +29,6 @@ app.config['DEBUG'] = True
 
 SERVER_HOST = CONFIG['system']['flask_app']['host']
 SERVER_PORT = CONFIG['system']['flask_app']['port']
-
-#turbo = Turbo(app)
 
 STATIC_DIR = os.path.join(app.root_path, "static", "charts")
 CONFIG['static_dir'] = STATIC_DIR
@@ -49,7 +48,6 @@ def root():
 
 @app.route("/live_dashboard")
 def live_dashboard():
-    collection = db["traceroutes"]
     traceroute_id = str(get_latest_data_plane_id(collection))
     state = compute_state(collection, prefixes, traceroute_id)
     update_charts = not request.args.get('only_stream_raw_data_plane')
@@ -76,7 +74,6 @@ def live_dashboard():
 
 @app.route("/dashboard", methods=['GET', 'POST'])
 def dashboard():
-    collection = db["traceroutes"]
     latest_result = get_latest_data_plane_id(collection)
     update_charts = not request.args.get('only_stream_raw_data_plane')
     traceroute_id = request.args.get("uuid")
@@ -115,12 +112,9 @@ def run_app():
         MongoInserter:  periodically pull out new traceroute results from the queue and insert
                         them to a mongoDB database.
 
-        updater_loop:   periodically perform dynamic updates of dashboard attributes using flask-turbo
-
         bgp_worker: upload BGP snapshot of the localISP router to an FTP server (required in the GNS3 lab
                     because EEM script that should do exactly this procedure on a real Cisco equipment does not
                     supported in this lab)
-
 
     after all these threads run in background, the flask application framework in than started.
     """
@@ -137,10 +131,9 @@ def run_app():
     monitor = trace_monitor.TraceMonitor(**monitor_parameters)
     monitor.start()
 
-    # start FTP uploader worker thread
+    # start FTP uploader worker thread (should enable only on GNS3 lab environment)
     ftp_uploader = threading.Thread(target=bgp_worker, daemon=True)
     ftp_uploader.start()
 
     # run dashboard application
-    # start_updater_thread()
     app.run(host=SERVER_HOST, port=SERVER_PORT, threaded=True)
