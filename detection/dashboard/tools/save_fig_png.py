@@ -6,6 +6,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
+
 def save_fig_png(fig, prefix="chart"):
     """Save a Matplotlib figure to a unique PNG under static/charts and return URL path."""
     filename = f"{prefix}.png"

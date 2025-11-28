@@ -1,5 +1,7 @@
 from config import CONFIG
-from detection.dashboard.tools import compute_state, updater_loop
+from detection.utilities.prefix2as import prefix2as
+from detection.dashboard.render_fragments import render_fragments
+from detection.dashboard.tools.compute_state import compute_state
 from detection.system.database.get_latest_data_plane_id import get_latest_data_plane_id
 from detection.system.sensor import trace_monitor
 from external.bgp_table_to_ftp import bgp_worker
@@ -8,16 +10,11 @@ from pymongo import MongoClient
 from bson.objectid import ObjectId
 from flask import request, Flask, render_template, Response, redirect, url_for
 from turbo_flask import Turbo
-from threading import Lock
 from markupsafe import escape
 from bson.json_util import dumps
+from pprint import pprint
 import threading
 import os
-import pandas as pd
-
-# background thread
-thread = None
-thread_lock = Lock()
 
 # mongodb config
 client = MongoClient("mongodb://localhost:27017/")
@@ -25,39 +22,42 @@ db = client["network_monitoring"]
 
 # flask config
 app = Flask(__name__)
-app.config['SERVER_NAME'] = 'BGPDashbard'
-app.config['SECRET_KEY'] = 'bgphijack'
-turbo = Turbo(app)
+app.config['SERVER_NAME'] = CONFIG['system']['flask_app']['server_name']
+app.config['SECRET_KEY'] = CONFIG['system']['flask_app']['secret_key']
+app.config['DEBUG'] = True
+
+SERVER_HOST = CONFIG['system']['flask_app']['host']
+SERVER_PORT = CONFIG['system']['flask_app']['port']
+
+#turbo = Turbo(app)
 
 STATIC_DIR = os.path.join(app.root_path, "static", "charts")
 CONFIG['static_dir'] = STATIC_DIR
 os.makedirs(STATIC_DIR, exist_ok=True)
 
 # prefix2as configs
-prefixes = pd.read_csv(CONFIG['utilities']['prefix2as'])
+# note: this prefixes file contains data about all the address prefixes used in the GNS3 lab simulation
+#       and needed because not all the prefixes are announced in the lab (meaning that it is not possible to
+#       learn about all the prefixes in the project from the localISP routing table alone)
+prefixes = prefix2as.load_prefixes(CONFIG['utilities']['prefix2as'])
 
 
-def start_updater_thread():
-    # prevent double-start under Flask's debug reloader
-    if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-        t = threading.Thread(target=updater_loop.updater_loop, args=(app, turbo), daemon=True)
-        t.start()
+@app.route("/")
+def root():
+    return redirect(url_for('dashboard'))
 
 
-@app.route("/live_dashboard_data")
-def live_dashboard_data():
+@app.route("/live_dashboard")
+def live_dashboard():
     collection = db["traceroutes"]
-    latest_result = get_latest_data_plane_id(collection)
+    traceroute_id = str(get_latest_data_plane_id(collection))
+    state = compute_state(collection, prefixes, traceroute_id)
+    update_charts = not request.args.get('only_stream_raw_data_plane')
 
-    uuid_arg = request.args.get("uuid")
-    traceroute_id = uuid_arg or str(latest_result)
-
-    state = compute_state.compute_state(collection, prefixes, traceroute_id)
     if not state:
-        return Response(dumps({"error": f"cannot find traceroute (uuid: {traceroute_id})"}),
-                        mimetype="application/json")
+        return f"cannot find traceroute (uuid: {escape(traceroute_id)})"
 
-    payload = {
+    data_context = {
         "data_plane": state["data_plane"],
         "delay_chart_url": state["delay_chart_url"],
         "control_plane_chart_url": state["control_plane_chart_url"],
@@ -65,73 +65,72 @@ def live_dashboard_data():
         "prev_id": state.get("prev_id"),
         "next_id": state.get("next_id"),
         "ts": state["ts"],
+        "update_charts": update_charts
     }
-    return Response(dumps(payload), mimetype="application/json")
 
+    if request.args.get("only_stream_raw_data_plane"):
+        data_context.pop("ts")
 
-@app.route("/")
-def root():
-    return redirect(url_for('dashboard'))
-
-@app.route("/live_dashboard")
-def live_dashboard():
-    collection = db["traceroutes"]
-    latest_result = get_latest_data_plane_id(collection)
-
-    print(latest_result)
-    traceroute_id = request.args.get("uuid", default=ObjectId(f"{latest_result}"))
-    state = compute_state.compute_state(collection, prefixes, traceroute_id)
-    if not state:
-        return f"cannot find traceroute (uuid: {escape(traceroute_id)})"
-
-    # Initial full page render
-    return render_template(
-        "base_live.html",
-        data_plane=state["data_plane"],
-        delay_chart_url=state["delay_chart_url"],
-        control_plane_chart_url=state["control_plane_chart_url"],
-        data_plane_chart_url=state["data_plane_chart_url"],
-        prev_id=state["prev_id"],
-        next_id=state["next_id"],
-        ts=state["ts"]
-    )
+    return render_template("base_live.html", **data_context)
 
 
 @app.route("/dashboard", methods=['GET', 'POST'])
 def dashboard():
     collection = db["traceroutes"]
     latest_result = get_latest_data_plane_id(collection)
+    update_charts = not request.args.get('only_stream_raw_data_plane')
+    traceroute_id = request.args.get("uuid")
 
-    print(latest_result)
-    traceroute_id = request.args.get("uuid", default=ObjectId(f"{latest_result}"))
-    state = compute_state.compute_state(collection, prefixes, traceroute_id)
+    if not traceroute_id:
+        traceroute_id = latest_result
+
+    state = compute_state(collection, prefixes, traceroute_id)
     if not state:
         return f"cannot find traceroute (uuid: {escape(traceroute_id)})"
 
-    # Initial full page render
-    return render_template(
-        "base.html",
-        data_plane=state["data_plane"],
-        delay_chart_url=state["delay_chart_url"],
-        control_plane_chart_url=state["control_plane_chart_url"],
-        data_plane_chart_url=state["data_plane_chart_url"],
-        prev_id=state["prev_id"],
-        next_id=state["next_id"],
-        ts=state["ts"]
-    )
+    data_context = {
+        "data_plane": state["data_plane"],
+        "delay_chart_url": state["delay_chart_url"],
+        "control_plane_chart_url": state["control_plane_chart_url"],
+        "data_plane_chart_url": state["data_plane_chart_url"],
+        "prev_id": state.get("prev_id"),
+        "next_id": state.get("next_id"),
+        "ts": state["ts"],
+        "update_charts": update_charts
+    }
+
+    if request.args.get("only_stream_raw_data_plane"):
+        data_context.pop("ts")
+
+    return render_template("base.html", **data_context)
 
 
-@app.before_request
-def remember_uuid():
-    uuid_arg = request.args.get("uuid")
-    if uuid_arg:
-        updater_loop.last_uuid = uuid_arg
+def run_app():
+    """RunApp (project's runner)
+
+    this function runs all the project's threads:
+
+        TraceMonitor: perform periodic traceroute tasks and push their results to a queue.
+
+        MongoInserter:  periodically pull out new traceroute results from the queue and insert
+                        them to a mongoDB database.
+
+        updater_loop:   periodically perform dynamic updates of dashboard attributes using flask-turbo
+
+        bgp_worker: upload BGP snapshot of the localISP router to an FTP server (required in the GNS3 lab
+                    because EEM script that should do exactly this procedure on a real Cisco equipment does not
+                    supported in this lab)
 
 
-def run_app(monitor_parameters):
+    after all these threads run in background, the flask application framework in than started.
+    """
+
+    # load parameters for MongoInserter and TraceMonitor
+    mongo_parameters = make_mongo_inserter_parameters(CONFIG['system']['mongoDB'])
+    monitor_parameters = CONFIG['system']['monitor_setup']
 
     # start mongo inserter thread
-    mongo_inserter = MongoInserter(**make_mongo_inserter_parameters(CONFIG['system']['mongoDB']))
+    mongo_inserter = MongoInserter(**mongo_parameters)
     mongo_inserter.start()
 
     # start traceroute monitor thread
@@ -143,5 +142,5 @@ def run_app(monitor_parameters):
     ftp_uploader.start()
 
     # run dashboard application
-    start_updater_thread()
-    app.run(host='192.0.0.3', port=5000, debug=True, threaded=True)
+    # start_updater_thread()
+    app.run(host=SERVER_HOST, port=SERVER_PORT, threaded=True)

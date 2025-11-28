@@ -4,59 +4,60 @@ from flask import render_template_string
 def render_data_plane_fragment(state):
     return render_template_string(
         """
-            <div class="container mx-auto p-2" style="color: white;">
-      <h6 name="uuid" style="text-align: justify;">UUID: {{ data_plane._id }}</h6>
-      <h6 style="text-align: justify;">datetime:    {{ data_plane.timestamp }}</h6>
-      <h6 style="text-align: justify;">sensorId:    {{ data_plane.sensor_id }}</h6>
-      <h6 style="text-align: justify;">destination: {{ data_plane.destination_ip }}</h6>
-    </div>
+        <div class="container mx-auto p-2" style="color: white;">
+          <h6 name="uuid" style="text-align: justify;">UUID: {{ data_plane._id }}</h6>
+          <h6 style="text-align: justify;">datetime:    {{ data_plane.timestamp }}</h6>
+          <h6 style="text-align: justify;">sensorId:    {{ data_plane.sensor_id }}</h6>
+          <h6 style="text-align: justify;">destination: {{ data_plane.destination_ip }}</h6>
+        </div>
+        
+        <div class="container">
+          <div class="d-grid gap-2 d-md-flex justify-content-md-end" style="margin-bottom: 2%;">
+              <a name="btn_previous" class="btn btn-outline-light" style="margin-right: 1%;" type="submit" href="{{ url_for('dashboard', uuid=prev_id, only_stream_raw_data_plane=true) }}">previous</a>
+              <a name="btn_next" class="btn btn-outline-light" type="submit" href="{{ url_for('dashboard', uuid=next_id, only_stream_raw_data_plane=true) }}">next</a>
+          </div>
+          <div class="table-responsive">
+          <table id="data_plane" class="table table-dark table-striped table-hover table-bordered">
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col"></th>
+                  <th scope="col"></th>
+                  <th scope="col"></th>
+                  <th scope="col">IP</th>
+                  <th scope="col">ASN</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for hop in data_plane.hops %}
+                  <tr>
+                    <td>{{ hop.hop_num }}</td>
+                      {% if hop.delays[0] %}
+                    <td>{{ hop.delays[0] | round | int if hop.delays[0] else '*' }}ms</td>
+                      {% else %}
+                    <td> * </td>
+                      {% endif %}
+        
+                      {% if hop.delays[1] %}
+                    <td>{{ hop.delays[1] | round | int if hop.delays[0] else '*' }}ms</td>
+                      {% else %}
+                    <td> * </td>
+                      {% endif %}
+                      {% if hop.delays[2] %}
+                    <td>{{ hop.delays[2] | round | int if hop.delays[0] else '*' }}ms</td>
+                      {% else %}
+                    <td> * </td>
+                      {% endif %}
+        
+                    <td>{{ hop.hop_ip }}</td>
+                    <td>{{ hop.asn }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+          </table>
+          </div>
+        </div>
 
-    <div class="container">
-      <div class="d-grid gap-2 d-md-flex justify-content-md-end" style="margin-bottom: 2%;">
-          <a name="btn_previous" onclick="performPost()" class="btn btn-outline-light" style="margin-right: 1%;" type="submit" href="{{ url_for('dashboard', uuid=prev_id) }}">previous</a>
-          <a name="btn_next"  onclick="performPost()" class="btn btn-outline-light" type="submit" href="{{ url_for('dashboard', uuid=next_id) }}">next</a>
-      </div>
-      <div class="table-responsive">
-      <table id="data_plane" class="table table-dark table-striped table-hover table-bordered">
-          <thead>
-            <tr>
-              <th scope="col">#</th>
-              <th scope="col"></th>
-              <th scope="col"></th>
-              <th scope="col"></th>
-              <th scope="col">IP</th>
-              <th scope="col">ASN</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for hop in data_plane.hops %}
-              <tr>
-                <td>{{ hop.hop_num }}</td>
-                  {% if hop.delays[0] %}
-                <td>{{ hop.delays[0] | round | int if hop.delays[0] else '*' }}ms</td>
-                  {% else %}
-                <td> * </td>
-                  {% endif %}
-
-                  {% if hop.delays[1] %}
-                <td>{{ hop.delays[1] | round | int if hop.delays[0] else '*' }}ms</td>
-                  {% else %}
-                <td> * </td>
-                  {% endif %}
-                  {% if hop.delays[2] %}
-                <td>{{ hop.delays[2] | round | int if hop.delays[0] else '*' }}ms</td>
-                  {% else %}
-                <td> * </td>
-                  {% endif %}
-
-                <td>{{ hop.hop_ip }}</td>
-                <td>{{ hop.asn }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-      </table>
-      </div>
-    </div>
         """,
         data_plane=state["data_plane"])
 
@@ -88,7 +89,7 @@ def render_control_plane_chart_fragment(state):
 def render_data_plane_chart_fragment(state):
     return render_template_string(
         """
-        <div id="data_plane-chart">
+        <div id="data_plane_chart">
           <h2>Data plane chart</h2>
           <img src="{{ url }}?ts={{ ts }}" alt="Data plane chart">
         </div>

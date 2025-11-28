@@ -11,8 +11,9 @@ DELAY_POINT_LIMIT = CONFIG['dashboard']['delay_points_limit']
 DELAY_POINT_THRESHOLD = CONFIG['dashboard']['delay_points_threshold']
 
 
-def compute_state(collection, prefixes, traceroute_id: str):
+def compute_state(collection, prefixes, traceroute_id):
     """Fetch latest state and generate charts for a given traceroute id."""
+    print(f"search for: {traceroute_id}")
     curr_data_plane = collection.find_one({"sensor_id": 2, "_id": ObjectId(f"{traceroute_id}")})
     if not curr_data_plane:
         return None
@@ -32,18 +33,36 @@ def compute_state(collection, prefixes, traceroute_id: str):
     # Delay chart
     print("update delay chart")
     delay_chart_fig = get_delay_chart(collection, limit=DELAY_POINT_LIMIT, threshold=DELAY_POINT_THRESHOLD)
-    delay_chart_url = save_fig_png(delay_chart_fig, prefix="delay_chart")
+
+    try:
+        delay_chart_url = save_fig_png(delay_chart_fig, prefix="delay_chart")
+
+    except Exception as e:
+        print(e)
+        delay_chart_url = None
 
     # update BGP table (provided by LocalISP)
     pull_bgp_table('latest_bgp_table.txt')
 
     # control plane chart
     control_plane_chart_fig, _ = get_control_plane_chart()
-    control_plane_chart_url = save_fig_png(control_plane_chart_fig, prefix="control_plane_chart")
+
+    try:
+        control_plane_chart_url = save_fig_png(control_plane_chart_fig, prefix="control_plane_chart")
+
+    except Exception as e:
+        print(e)
+        control_plane_chart_url = None
 
     # data plane chart
     data_plane_chart_fig, data_plane_hops_to_asn = get_data_plane_chart(trace_hops, prefixes)
-    data_plane_chart_url = save_fig_png(data_plane_chart_fig, prefix="data_plane_chart")
+
+    try:
+        data_plane_chart_url = save_fig_png(data_plane_chart_fig, prefix="data_plane_chart")
+
+    except Exception as e:
+        print(e)
+        data_plane_chart_url = None
 
     for hop in trace_hops:
         if hop["responded"]:
@@ -60,7 +79,6 @@ def compute_state(collection, prefixes, traceroute_id: str):
         "data_plane_chart_url": data_plane_chart_url,
         "prev_id": str(prev_data_plane["_id"]) if prev_data_plane else traceroute_id,
         "next_id": str(next_data_plane["_id"]) if next_data_plane else traceroute_id,
-        # Timestamp used to bust browser cache on images
         "ts": int(time.time())
     }
 
