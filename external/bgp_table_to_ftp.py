@@ -19,7 +19,7 @@ https://www.cisco.com/c/en/us/support/docs/ios-nx-os-software/ios-xe-16/216091-b
 """
 
 
-def upload_to_ftp(only_latest=True):
+def upload_to_ftp(filename=None, only_latest=True):
     """
     Upload BGP Table Snapshot to FTP Server
 
@@ -30,6 +30,11 @@ def upload_to_ftp(only_latest=True):
         4. connect to FTP server
         5. upload bytesIO as "latest_bgp_table.txt"
         6 (optional) upload bytesIO as "bgp_table_<current_time>.txt"
+
+    :param filename: the filename of the uploaded snapshot (this parameter is used only during local test)
+    :param only_latest: if True, only replace the previous latest_bgp_table file with this snapshot (step 5)
+                        if False, create an additional "bgp_table_<current_time>.txt" (step 6)
+    :return the procedure status (True for success, False for failure)
     """
     local_isp_credentials = CONFIG['ftp_process']['local_isp']
     router_ip = local_isp_credentials['router_ip']
@@ -41,43 +46,54 @@ def upload_to_ftp(only_latest=True):
     ftp_user = ftp_credentials['user']
     ftp_pass = ftp_credentials['password']
 
-    print("connecting to localISP...")
+    try:
+        print("connecting to localISP...")
 
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(router_ip, username=router_user, password=router_pass)
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect(router_ip, username=router_user, password=router_pass)
 
-    print("connected to localISP")
+        print("connected to localISP")
 
-    stdin, stdout, stderr = ssh.exec_command("show ip bgp")
-    output = stdout.read().decode()
-    ssh.close()
+        stdin, stdout, stderr = ssh.exec_command("show ip bgp")
+        output = stdout.read().decode()
+        ssh.close()
 
-    print("close connection with localISP")
+        print("close connection with localISP")
 
-    bio = BytesIO(output.encode('utf-8'))
+        bio = BytesIO(output.encode('utf-8'))
 
-    print("connecting to FTP server...")
+        print("connecting to FTP server...")
 
-    ftp = FTP(ftp_server_ip)
-    ftp.login(user=ftp_user, passwd=ftp_pass)
+        ftp = FTP(ftp_server_ip)
+        ftp.login(user=ftp_user, passwd=ftp_pass)
 
-    print("connected to FTP server")
+        print("connected to FTP server")
 
-    current_datetime = strftime("%Y_%m_%d_%H_%M", gmtime())
+        # local test mode
+        if filename:
+            ftp.storbinary(f"STOR {filename}", bio)
 
-    ftp_filename = ftp_credentials['filename']
-    latest_filename = f"latest_{ftp_filename}"
-    current_filename = f"{ftp_filename.replace(".txt", f"_{current_datetime}.txt")}"
+        # global test or production mode
+        if not filename:
+            current_datetime = strftime("%Y_%m_%d_%H_%M", gmtime())
+            ftp_filename = ftp_credentials['filename']
+            latest_filename = f"latest_{ftp_filename}"
+            current_filename = f"{ftp_filename.replace(".txt", f"_{current_datetime}.txt")}"
 
-    ftp.storbinary(f"STOR {latest_filename}", bio)
+            ftp.storbinary(f"STOR {latest_filename}", bio)
 
-    if not only_latest:
-        ftp.storbinary(f"STOR {current_filename}", bio)
+            if not only_latest:
+                ftp.storbinary(f"STOR {current_filename}", bio)
 
-    print("close connection with FTP server")
+        print("close connection with FTP server")
+        ftp.quit()
 
-    ftp.quit()
+        return True
+
+    except Exception as e:
+        print(e)
+        return False
 
 
 def bgp_worker():

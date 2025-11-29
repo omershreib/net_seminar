@@ -1,6 +1,6 @@
 from config import CONFIG
 from detection.dashboard.tools.save_fig_png import save_fig_png
-from detection.system.sensor.bgp_table_from_ftp import pull_bgp_table
+from detection.dashboard.tools.get_bgp_table_from_ftp import pull_bgp_table
 from detection.system.charts.get_control_plane_chart import get_control_plane_chart
 from detection.system.charts.get_data_plane_chart import get_data_plane_chart
 from detection.system.charts.get_delay_chart import get_delay_chart
@@ -9,6 +9,18 @@ import time
 
 DELAY_POINT_LIMIT = CONFIG['dashboard']['delay_points_limit']
 DELAY_POINT_THRESHOLD = CONFIG['dashboard']['delay_points_threshold']
+
+
+def save_exception_wrapper(*args, **kwargs):
+    # for some reason that I did not have enough time to investigate, I sometimes receive an error when attempting
+    # to save figures. the quickest and deaerates solution is to ignore these errors ... /: (when refreshing the page
+    # any glitch in the dashboard should be fixed)
+    try:
+        return save_fig_png(*args, **kwargs)
+
+    except Exception as e:
+        print(e)
+        return None
 
 
 def compute_state(collection, prefixes, traceroute_id):
@@ -47,39 +59,18 @@ def compute_state(collection, prefixes, traceroute_id):
         sort=[("_id", 1)]
     )
 
-    # delay chart
-    delay_chart_fig = get_delay_chart(collection, limit=DELAY_POINT_LIMIT, threshold=DELAY_POINT_THRESHOLD)
-
-    try:
-        delay_chart_url = save_fig_png(delay_chart_fig, prefix="delay_chart")
-
-    except Exception as e:
-        print(e)
-        delay_chart_url = None
-
-    # update BGP table (provided by LocalISP)
     pull_bgp_table('latest_bgp_table.txt')
 
-    # control plane chart
+    delay_chart_fig = get_delay_chart(collection, limit=DELAY_POINT_LIMIT, threshold=DELAY_POINT_THRESHOLD)
+    delay_chart_url = save_exception_wrapper(delay_chart_fig, prefix="delay_chart")
+
     control_plane_chart_fig, _ = get_control_plane_chart()
+    control_plane_chart_url = save_exception_wrapper(control_plane_chart_fig, prefix="control_plane_chart")
 
-    try:
-        control_plane_chart_url = save_fig_png(control_plane_chart_fig, prefix="control_plane_chart")
-
-    except Exception as e:
-        print(e)
-        control_plane_chart_url = None
-
-    # data plane chart
     data_plane_chart_fig, data_plane_hops_to_asn = get_data_plane_chart(trace_hops, prefixes)
+    data_plane_chart_url = save_exception_wrapper(data_plane_chart_fig, prefix="data_plane_chart")
 
-    try:
-        data_plane_chart_url = save_fig_png(data_plane_chart_fig, prefix="data_plane_chart")
-
-    except Exception as e:
-        print(e)
-        data_plane_chart_url = None
-
+    # expand raw traceroute data with ASN data when exist
     for hop in trace_hops:
         if hop["responded"]:
             hop_asn = data_plane_hops_to_asn.get(hop["hop_ip"])

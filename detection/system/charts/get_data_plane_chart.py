@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 from bson.objectid import ObjectId
-from detection.system.charts.aspath_charts_maker import make_edges, get_aspath_chart_fig, AS_RELATIONSHIPS
+from detection.system.charts.as_path_chart_maker import make_edges, get_as_path_chart_fig, AS_RELATIONSHIPS
 from detection.utilities.prefix2as import prefix2as
 import pandas as pd
 
@@ -37,7 +37,7 @@ def get_data_plane_chart(trace_hops, prefixes, sensor_asn=100):
 
     edges = make_edges(fixed_as_path)
 
-    fig = get_aspath_chart_fig("Data Plane AS-Path", fixed_as_path, edges, AS_RELATIONSHIPS)
+    fig = get_as_path_chart_fig("Data Plane AS-Path", fixed_as_path, edges, AS_RELATIONSHIPS)
     return fig, hop_to_asn_dict
 
 

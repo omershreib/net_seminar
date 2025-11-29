@@ -1,6 +1,6 @@
-from detection.system.analysis.parse_bgp import load_bgp_table_file, normalize_network, bgp_table_to_dict
+from detection.utilities.bgp_table.parse_bgp import load_bgp_table_file, normalize_network, bgp_table_to_dict
 from expected_bgp_routes import expected_bgp_routes
-from ipaddress import IPv4Address, IPv4Network
+from ipaddress import IPv4Network
 import unittest
 
 

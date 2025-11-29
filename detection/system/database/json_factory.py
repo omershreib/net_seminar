@@ -1,19 +1,22 @@
+from config import CONFIG
 from datetime import datetime
 
 
-sensors_dict = {'192.168.1.246': 1,
-                '192.0.0.3': 2}
-
 def jsonify_trace_list(sensor_ip, destination_ip, hops):
+    """
+    Jsonify Traceroute List
 
-    #print(f"hops: {hops}")
+    this function create a json document of a given traceroute probe ready to be inserted to mongoDB.
+
+    :param sensor_ip: IP address of the sensor perform this traceroute
+    :param destination_ip: IP address of the monitored target
+    :param hops: list of traceroute hops raw data
+    :return: a dictionary with the traceroute document insert format
+    """
     json_hops = []
 
     for hop in hops:
-        #print(f"hop: {hop}")
-        hop_num = hop[0]
-        delays = hop[1]
-        hop_ip = hop[2]
+        hop_num, delays, hop_ip = hop
         json_hop = {}
 
         if hop_ip:
@@ -26,7 +29,7 @@ def jsonify_trace_list(sensor_ip, destination_ip, hops):
 
     json_doc = {
         "timestamp": datetime.now(),  # required for time series
-        "sensor_id": sensors_dict[sensor_ip],
+        "sensor_id": CONFIG['sensors_dict'][sensor_ip],
         "destination_ip": destination_ip,
         "hops": json_hops
     }

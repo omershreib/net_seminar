@@ -1,28 +1,9 @@
 from pyparsing import Word, Combine, Optional, oneOf, nums, Group, OneOrMore, Literal, ParseException
 from ipaddress import IPv4Address, IPv4Network
-# from parse_ip_route import ip_routes_to_net_masks_dict
 import pandas as pd
 
 
-def load_bgp_table_file(filename):
-    flag = False
-    file_lines = []
-
-    with open(filename, 'r') as f:
-        for line in f:
-            # print(line)
-            if flag and ('>' in line):
-                file_lines.append(line.strip('\n'))
-
-            if 'Network' in line:
-                # print(line)
-                # file_lines.append(line.strip('\n'))
-                flag = True
-
-    return file_lines
-
-
-# Define grammar components
+# define grammar components
 status_code = Combine(Optional(oneOf("r * >")) + Optional(Literal(">")))
 ip_octet = Word(nums, max=3)
 ip_addr = Combine(ip_octet + "." + ip_octet + "." + ip_octet + "." + ip_octet)
@@ -36,7 +17,11 @@ origin = oneOf("i e ?")
 
 bgp_fields = ["status", "network", "next_hop", "metric", "locprf", "weight", "path", "origin"]
 
-# Full grammar
+# Cisco did the life of dev-nets programmer very hard and made the parsing of the routing table very complicated
+# there is something called "Cisco Genie Parser" that should do the life easier in terms of Cisco output parsing
+# but unfortunately, at least for what Ia know, it is currently support only linux
+#
+# my solution was to perform 3 version of possible parsing and take the best of them
 bgp_line_v1 = (
         status_code("status")
         + prefix("network")
@@ -67,38 +52,63 @@ bgp_line_v3 = (
         + origin("origin")
 )
 
+def load_bgp_table_file(filename):
+    """
+    Load BGP Snapshot Table From File
 
-def test_parse():
-    line = "r> 1.1.1.1/32       2.2.2.2                  0             0 200 ?"
-    # Parse the line
-    result = bgp_line_v1.parseString(line)
+    the BGP snapshot is made by performing the Cisco IOS command "show ip bgp" on a Cisco IOS router
+    that runs BGP (also known as BGP speaker).
 
-    # Show parsed fields
-    print("Status:", result["status"])
-    print("Network:", result["network"])
-    print("Next Hop:", result["next_hop"])
-    print("Metric:", result["metric"])
-    print("LocPrf:", result["locprf"])
-    print("Weight:", result["weight"])
-    print("Path:", result.get("path", []))
-    print("Origin:", result["origin"])
+    for further information:
+    https://www.cisco.com/c/en/us/td/docs/ios/iproute_bgp/command/reference/irg_book/irg_bgp5.html
 
+    :param filename: the filename of the BGP snapshot
+    :return: a list contains only the bgp routes lines
+    """
+    flag = False
+    file_lines = []
 
-# def normalize_network(net_str, net_mask):
-#     if "/" not in net_str:
-#         #return IPv4Network(net_str + "/32", strict=False)
-#         return IPv4Network(f"{net_str}{net_mask[net_str]}", strict=False)
-#     return IPv4Network(net_str, strict=False)
+    with open(filename, 'r') as f:
+        for line in f:
+            if flag and ('>' in line):
+                file_lines.append(line.strip('\n'))
+
+            if 'Network' in line:
+                flag = True
+
+    return file_lines
 
 
 def normalize_network(net_str):
+    """
+    normalize network by added /<mask> to a given string network address
+
+    :param net_str: string network address
+    :return: "normalized" IPv4Network object (by default define with /24)
+    """
     if "/" not in net_str:
-        # Default to /24 instead of /32
         return IPv4Network(net_str + "/24", strict=False)
     return IPv4Network(net_str, strict=False)
 
 
 def bgp_table_to_dict(bgp_file):
+    """
+    BGP Table to Dictionary
+
+    parse a given BGP snapshot file and create a list of BGP routes, so every
+    route in this list is equivalences to route line in the original BGP snapshot file
+
+    Note:
+    ----
+    this parsing algorithm is absolutely not perfect and will likely NOT work under the following condition:
+        1. a route with a pre-configured weight value
+        (this is a Cisco property attribute that overcome local preference)
+
+        2. a route that their path is a singleton of [32768]
+
+    :param bgp_file: BGP snapshot file (downloaded from FTP server)
+    :return: a list of BGP routes
+    """
     table = load_bgp_table_file(bgp_file)
     bgp_routes = []
     for row in table:
@@ -148,28 +158,3 @@ def bgp_table_to_dict(bgp_file):
             bgp_routes.append(bgp_route)
 
     return bgp_routes
-
-
-if __name__ == '__main__':
-
-    bgp_file = r"D:\Documents\open university\netSeminar\source\detection\system\sensor\bgp_table.txt"
-    bgp_routes = bgp_table_to_dict(bgp_file)
-
-    for route in bgp_routes:
-        print(route)
-
-    df = pd.DataFrame(bgp_routes)
-
-    # df["network_obj"] = df["network"].apply(normalize_network, args=(masks,))
-    df["network_obj"] = df["network"].apply(normalize_network)
-    print(df)
-
-    # === Query by IP address ===
-    query_ip = IPv4Address("198.18.1.13")
-    matches_ip = df[df["network_obj"].apply(lambda net: query_ip in net)]
-    print("Matches for IP:", matches_ip.to_dict())
-
-    # === Query by prefix ===
-    query_net = IPv4Network("198.18.1.0/25")
-    matches_net = df[df["network_obj"].apply(lambda net: net.overlaps(query_net))]
-    print("Matches for prefix:", matches_net.to_dict())

@@ -1,6 +1,7 @@
 import unittest
 import os
 
+
 def run_tests():
     loader = unittest.TestLoader()
     suite = loader.discover(os.curdir)

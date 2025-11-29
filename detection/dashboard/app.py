@@ -35,7 +35,7 @@ CONFIG['static_dir'] = STATIC_DIR
 os.makedirs(STATIC_DIR, exist_ok=True)
 
 # prefix2as configs
-# note: this prefixes file contains data about all the address prefixes used in the GNS3 lab simulation
+# note: this prefix2as file contains data about all the address prefixes used in the GNS3 lab simulation
 #       and needed because not all the prefixes are announced in the lab (meaning that it is not possible to
 #       learn about all the prefixes in the project from the localISP routing table alone)
 prefixes = prefix2as.load_prefixes(CONFIG['utilities']['prefix2as'])

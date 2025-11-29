@@ -15,8 +15,8 @@ AS_RELATIONSHIPS = get_as_relationships()
 
 
 class TestGetDataPlaneChart(unittest.TestCase):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def setUp(self):
+        self.filename = "test_data_plane_actual_chart.png"
         self.test_chart = r'test_files/test_expected_data_plane_chart.png'
         self.prefixes = prefix2as.load_prefixes(CONFIG['utilities']['prefix2as'])
 
@@ -40,14 +40,15 @@ class TestGetDataPlaneChart(unittest.TestCase):
         actual_fig, actual_hop_to_asn_dict = get_data_plane_chart(trace_hops=trace_hops,
                                                                   prefixes=self.prefixes,
                                                                   sensor_asn=100)
-        filename = "test_actual_chart.png"
         actual_fig.tight_layout()
-        plt.savefig(filename, format="png", dpi=120)
+        plt.savefig(self.filename, format="png", dpi=120)
         plt.close(actual_fig)
         plt.clf()
 
-        actual_img = mpimg.imread("test_actual_chart.png")
+        actual_img = mpimg.imread(self.filename)
         np.testing.assert_allclose(self.excepted_img, actual_img, rtol=1e-5, atol=1e-8)
 
         self.assertEqual(expected_hop_to_asn_dict, actual_hop_to_asn_dict)
-        os.remove(filename)
+
+    def tearDown(self):
+        os.remove(self.filename)
