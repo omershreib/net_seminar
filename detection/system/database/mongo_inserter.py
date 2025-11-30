@@ -52,8 +52,8 @@ class MongoInserter(threading.Thread):
                 continue
 
             items = trace_queue.get()
-            sensor_ip, target_ip, data_plane = items
-            trace_list = get_traceroute_list(data_plane)
+            os_type, sensor_ip, target_ip, data_plane = items
+            trace_list = get_traceroute_list(data_plane, os_type)
 
             to_json_doc = jsonify_trace_list(sensor_ip, target_ip, trace_list)
             result = self.collection.insert_one(to_json_doc)

@@ -1,8 +1,22 @@
 from datetime import datetime, timedelta
 from detection.system.sensor.traceroute import traceroute_host
 from detection.system.database.mongo_inserter import trace_queue
+import platform
 import threading
 import time
+
+
+def check_platform_system():
+    os_type = platform.system()
+
+    if os_type == "Windows":
+        return os_type
+    elif os_type == "Linux":
+        return os_type
+    else:
+        # by default, set traceroute format to Windows
+        print(f"warning: this project is likely does not supported this machine (neither Windows nor Linux)")
+        return "Windows"
 
 
 class TraceMonitor(threading.Thread):
@@ -23,13 +37,14 @@ class TraceMonitor(threading.Thread):
         self.start_time = datetime.now() + timedelta(seconds=delta)
         self.end_time = self.start_time + timedelta(seconds=duration)
         self.sensor_ip = sensor_ip
-        self._stop_event = threading.Event()
         self.frequency = frequency
+        self._stop_event = threading.Event()
+        self._os_type = check_platform_system()
 
     def run_traceroute(self):
         """run traceroute command and return output as string"""
         try:
-            return traceroute_host(self.destination_ip)
+            return traceroute_host(self.destination_ip, os_type=self._os_type)
         except Exception as e:
             return f"Error running traceroute: {e}"
 
@@ -42,7 +57,7 @@ class TraceMonitor(threading.Thread):
             print(f"[{datetime.now()}] running traceroute to {self.destination_ip}")
             output = self.run_traceroute()
 
-            pack = (self.sensor_ip, self.destination_ip, output)
+            pack = (self._os_type, self.sensor_ip, self.destination_ip, output)
             trace_queue.put(pack)
 
             time.sleep(self.frequency)

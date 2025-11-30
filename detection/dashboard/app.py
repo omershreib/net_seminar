@@ -25,7 +25,7 @@ collection = db[MONGO_COLLECTION]
 app = Flask(__name__)
 app.config['SERVER_NAME'] = CONFIG['system']['flask_app']['server_name']
 app.config['SECRET_KEY'] = CONFIG['system']['flask_app']['secret_key']
-app.config['DEBUG'] = True
+app.config['DEBUG'] = False
 
 SERVER_HOST = CONFIG['system']['flask_app']['host']
 SERVER_PORT = CONFIG['system']['flask_app']['port']

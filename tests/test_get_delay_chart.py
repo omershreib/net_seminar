@@ -24,7 +24,7 @@ class TestGetDelayChart(unittest.TestCase):
 
         self.excepted_img = mpimg.imread(self.test_chart)
 
-        actual_fig = get_delay_chart(mock_collection, limit=25, threshold=150)
+        actual_fig = get_delay_chart(mock_collection)
 
         actual_fig.tight_layout()
         plt.savefig(self.filename, format="png", dpi=120)
